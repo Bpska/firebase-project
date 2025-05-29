@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
+import { ThemeToggleButton } from "@/components/theme-toggle-button";
 
 export default function Header() {
   const { user } = useAuth();
@@ -85,6 +86,7 @@ export default function Header() {
               </Button>
             </>
           )}
+          <ThemeToggleButton />
         </nav>
       </div>
     </header>
