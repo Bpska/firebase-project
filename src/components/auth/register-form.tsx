@@ -57,11 +57,14 @@ export default function RegisterForm() {
       const user = userCredential.user;
 
       // Add user data to Firestore
+      const isAdmin = values.email === "bpskar2@gmail.com"; // Check if the registering user is the admin
       await addDoc(collection(db, "users"), {
         uid: user.uid,
         email: values.email,
         username: values.username,
         sex: values.sex,
+        isAdmin: isAdmin, // Add isAdmin flag
+        hasSpecialAccess: false, // Default special access to false
         createdAt: new Date(),
       });
 
