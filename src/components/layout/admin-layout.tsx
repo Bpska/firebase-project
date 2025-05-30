@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react';
 import Link from 'next/link';
-import { LayoutDashboard, Users, Settings, BarChart } from 'lucide-react'; // Example icons
+import { LayoutDashboard, Users, Settings, BarChart, BookText } from 'lucide-react'; // Added BookText
 
 interface AdminLayoutProps {
   children: ReactNode;
