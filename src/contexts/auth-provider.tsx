@@ -26,49 +26,59 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [hasSpecialAccess, setHasSpecialAccess] = useState(false); // Add hasSpecialAccess state
-  const [loading, setLoading] = useState(true);
-  const router = useRouter(); // For redirection
-  const pathname = usePathname(); // For checking current path
+  const [hasSpecialAccess, setHasSpecialAccess] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true); // For Firebase Auth state
+  const [firestoreLoading, setFirestoreLoading] = useState(false); // For Firestore user data fetching
+
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      let currentIsAdmin = false;
-      let currentHasSpecialAccess = false;
+      setAuthLoading(true); // Reset authLoading at the start of an auth state change
+      setFirestoreLoading(false); // Default firestoreLoading to false, set true only if fetching
 
       if (firebaseUser) {
-        setUser(firebaseUser);
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("uid", "==", firebaseUser.uid));
+        setUser(firebaseUser); // Set user from Firebase Auth
+        setFirestoreLoading(true); // Indicate Firestore fetch is starting
+
+        let currentIsAdmin = false;
+        let currentHasSpecialAccess = false;
+
         try {
+          const usersRef = collection(db, "users");
+          const q = query(usersRef, where("uid", "==", firebaseUser.uid));
           const querySnapshot = await getDocs(q);
+
           if (!querySnapshot.empty) {
             const userDoc = querySnapshot.docs[0].data();
             currentIsAdmin = userDoc.isAdmin || false;
             currentHasSpecialAccess = userDoc.hasSpecialAccess || false;
-            setIsAdmin(currentIsAdmin);
-            setHasSpecialAccess(currentHasSpecialAccess);
           } else {
             console.warn("User document not found in Firestore for UID:", firebaseUser.uid);
-            setIsAdmin(false);
-            setHasSpecialAccess(false);
+            // Defaults for currentIsAdmin and currentHasSpecialAccess remain false
           }
         } catch (error) {
           console.error("Error fetching user data from Firestore:", error);
-          setIsAdmin(false);
-          setHasSpecialAccess(false);
+          // Defaults for currentIsAdmin and currentHasSpecialAccess remain false
+        } finally {
+          setIsAdmin(currentIsAdmin); // Set regardless of success/failure (defaults to false on error/not found)
+          setHasSpecialAccess(currentHasSpecialAccess); // Set regardless
+          setFirestoreLoading(false); // Firestore fetch complete (or attempted)
         }
       } else {
         setUser(null);
         setIsAdmin(false);
         setHasSpecialAccess(false);
+        // No Firestore fetch needed, so firestoreLoading remains false
       }
-      setLoading(false);
+      setAuthLoading(false); // Firebase auth state resolution is complete
 
-      // Redirection logic after all states are set
-      if (firebaseUser && currentHasSpecialAccess && !currentIsAdmin) {
-        const nonSpecialAccessPaths = ['/', '/login', '/register']; // Define paths that are not special access
-        // Add more "normal" user paths here if needed
+      // Redirection logic (can now use isAdmin and hasSpecialAccess states directly if preferred,
+      // or currentIsAdmin/currentHasSpecialAccess if values right after fetch are needed)
+      // Using state values is fine as this logic runs after they are set.
+      if (firebaseUser && hasSpecialAccess && !isAdmin) { // Using state here
+        const nonSpecialAccessPaths = ['/', '/login', '/register'];
         if (nonSpecialAccessPaths.includes(pathname) && pathname !== '/special-access') {
           router.push('/special-access');
         }
@@ -76,9 +86,11 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     });
 
     return () => unsubscribe();
-  }, [pathname, router]); // Add pathname and router to dependency array
+  }, [pathname, router, isAdmin, hasSpecialAccess]); // Added isAdmin and hasSpecialAccess as redirection logic now uses them from state
 
-  if (loading) {
+  const combinedLoading = authLoading || firestoreLoading;
+
+  if (combinedLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -87,7 +99,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, hasSpecialAccess }}> {/* Add hasSpecialAccess to context */}
+    <AuthContext.Provider value={{ user, loading: combinedLoading, isAdmin, hasSpecialAccess }}>
       {children}
     </AuthContext.Provider>
   );
