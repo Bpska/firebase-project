@@ -43,12 +43,12 @@ export default function SpecialAccessPage() {
         <CardContent className="text-center">
           <p className="text-lg text-gray-600 mb-6">
             Hello, {user.displayName || user.email}! You have been granted exclusive access.
-          </p>          
+          </p>
           <p className="text-md text-gray-500 mb-8">
             This area contains content or features not available to standard users.
           </p>
-          <Button 
-            onClick={() => router.push('/')} 
+          <Button
+            onClick={() => router.push('/')}
             variant="outline"
             className="w-full mb-3 group"
           >

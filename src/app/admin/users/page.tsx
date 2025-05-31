@@ -35,39 +35,63 @@ function UserManagementPage() {
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<Record<string, boolean>>({}); // To track updates per user
 
-  const fetchUsers = useCallback(async () => { // Wrapped in useCallback
-    setLoading(true);
-    setError(null); // Clear previous errors
-    try {
-      const usersCollectionRef = collection(db, 'users');
-      const querySnapshot = await getDocs(usersCollectionRef);
-      const usersList = querySnapshot.docs.map(docSnap => { // Renamed doc to docSnap for clarity
-        const data = docSnap.data();
-        return {
-          id: docSnap.id,
+  // fetchUsers is not wrapped in useCallback anymore, as it will be defined inside useEffect
+  // or it could be, but the isMounted logic is cleaner if it's part of the effect's scope.
+
+  useEffect(() => {
+    let isMounted = true; // Flag to track mount status
+
+    const fetchUsersInternal = async () => {
+      if (!isMounted) return; // Prevent updates if unmounted
+      setLoading(true);
+      setError(null);
+      try {
+        const usersCollectionRef = collection(db, 'users');
+        const querySnapshot = await getDocs(usersCollectionRef);
+        if (!isMounted) return; // Check again after await
+
+        const usersList = querySnapshot.docs.map(docSnap => {
+          const data = docSnap.data();
+          return {
+            id: docSnap.id,
           uid: data.uid,
           email: data.email,
           username: data.username,
           sex: data.sex,
           isAdmin: data.isAdmin || false,
-          hasSpecialAccess: data.hasSpecialAccess || false, // Fetch hasSpecialAccess
+          hasSpecialAccess: data.hasSpecialAccess || false,
           createdAt: data.createdAt,
         } as UserData;
       });
-      setUsers(usersList);
-    } catch (err) {
-      console.error("Error fetching users:", err);
-      setError("Failed to fetch user data. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  }, []); // Added dependency array for useCallback
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]); // fetchUsers is now a dependency
+        if (isMounted) {
+          setUsers(usersList);
+        }
+      } catch (err) {
+        console.error("Error fetching users:", err);
+        if (isMounted) {
+          setError("Failed to fetch user data. Please try again later.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchUsersInternal();
+
+    return () => {
+      isMounted = false; // Cleanup: set isMounted to false when component unmounts
+    };
+  }, []); // Empty dependency array: run once on mount and clean up on unmount
 
   const toggleSpecialAccess = async (userId: string, currentStatus: boolean) => {
+    // For toggleSpecialAccess, the risk of unmounted state updates is lower
+    // as it's a direct user interaction, and usually faster.
+    // However, for extreme robustness, a similar isMounted check could be added
+    // or AbortController for the Firestore update if it were a longer operation.
+    // For now, focusing on fetchUsers as it's on initial load.
     setUpdating(prev => ({ ...prev, [userId]: true }));
     setError(null); // Clear previous errors specific to this action
     try {
