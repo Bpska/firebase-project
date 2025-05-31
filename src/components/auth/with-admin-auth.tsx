@@ -13,11 +13,10 @@ const withAdminAuth = <P extends object>(WrappedComponent: React.ComponentType<P
     if (!authContext) {
       // This case should ideally not happen if the component is wrapped within AuthProvider
       console.error("AuthContext is undefined, make sure you are wrapping your app in AuthProvider");
-      // Optionally redirect or show an error
-      useEffect(() => {
-        router.push('/login');
-      }, [router]);
-      return null;
+      // Return a static message or loader; avoid side effects like router.push here directly
+      // as router might not be fully initialized if context is missing at a very early stage.
+      // A hard error or specific error page might be more appropriate for a setup issue.
+      return <div className="flex min-h-screen items-center justify-center bg-background"><p>Critical Error: AuthProvider not found.</p></div>;
     }
 
     const { user, isAdmin, loading } = authContext;
