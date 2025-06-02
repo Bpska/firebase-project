@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/auth-provider';
 import Header from '@/components/layout/header';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from "@/components/theme-provider";
+import { RegistrationFormProvider } from '@/contexts/RegistrationFormContext';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -30,19 +31,21 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
+ attribute="class"
+ defaultTheme="system"
+ enableSystem
+ disableTransitionOnChange
         >
           <AuthProvider>
+ <RegistrationFormProvider>
             <div className="flex min-h-screen flex-col">
               <Header />
               <main className="flex-1">{children}</main>
             </div>
             <Toaster />
-          </AuthProvider>
-        </ThemeProvider>
+ </RegistrationFormProvider>
+ </AuthProvider>
+ </ThemeProvider>
       </body>
     </html>
   );
